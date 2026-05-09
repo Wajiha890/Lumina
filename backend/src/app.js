@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { Op } from "sequelize";
+import { BlobServiceClient } from "@azure/storage-blob";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.join(__dirname, "..", "uploads");
@@ -17,6 +18,28 @@ const EXT = {
   image: new Set(["jpg", "jpeg", "png", "gif", "webp"]),
   video: new Set(["mp4", "webm", "ogg", "mov"]),
 };
+const BLOB_CONTAINER = process.env.AZURE_STORAGE_CONTAINER || "uploads";
+
+function getBlobServiceClient() {
+  const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
+  if (!connStr) return null;
+  return BlobServiceClient.fromConnectionString(connStr);
+}
+
+async function uploadToBlob(buffer, filename, mimetype) {
+  const client = getBlobServiceClient();
+  const containerClient = client.getContainerClient(BLOB_CONTAINER);
+  await containerClient.createIfNotExists({ access: "blob" });
+  const blockBlob = containerClient.getBlockBlobClient(filename);
+  await blockBlob.upload(buffer, buffer.length, { blobHTTPHeaders: { blobContentType: mimetype } });
+  return blockBlob.url;
+}
+
+async function deleteFromBlob(filename) {
+  const client = getBlobServiceClient();
+  const containerClient = client.getContainerClient(BLOB_CONTAINER);
+  await containerClient.getBlockBlobClient(filename).deleteIfExists();
+}
 
 function ensureUploadDir() {
   if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -133,17 +156,7 @@ export function createApp(sequelize, models) {
   app.use(express.json());
   app.use("/uploads", express.static(UPLOAD_DIR));
 
-  const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-    filename: (_req, file, cb) => {
-      const ext = (path.extname(file.originalname) || "").toLowerCase().replace(/^\./, "");
-      cb(null, `${uuidv4().replace(/-/g, "")}.${ext || "bin"}`);
-    },
-  });
-  const upload = multer({
-    storage,
-    limits: { fileSize: MAX_SIZE },
-  });
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_SIZE } });
 
   app.get("/", (_req, res) => {
     res.json({ message: "Lumina API running" });
@@ -258,7 +271,14 @@ export function createApp(sequelize, models) {
       const mime = file.mimetype || "";
       const prefix = mediaType === "image" ? "image/" : "video/";
       if (mime && !mime.startsWith(prefix)) return res.status(400).json({ message: `Selected file does not match ${mediaType} media type` });
-      mediaUrl = `${publicBase(req)}/uploads/${file.filename}`;
+      const filename = `${uuidv4().replace(/-/g, "")}.${ext || "bin"}`;
+      if (getBlobServiceClient()) {
+        mediaUrl = await uploadToBlob(file.buffer, filename, mime);
+      } else {
+        ensureUploadDir();
+        fs.writeFileSync(path.join(UPLOAD_DIR, filename), file.buffer);
+        mediaUrl = `${publicBase(req)}/uploads/${filename}`;
+      }
     } else {
       if (!mediaUrl || (!mediaUrl.startsWith("http://") && !mediaUrl.startsWith("https://"))) {
         return res.status(400).json({ message: "A valid media URL is required" });
@@ -282,14 +302,14 @@ export function createApp(sequelize, models) {
     const img = await Image.findByPk(req.params.id);
     if (!img) return res.status(404).json({ message: "Not found" });
     if (img.userId !== req.userId) return res.status(403).json({ message: "Not authorized" });
-    const local = img.imageUrl && img.imageUrl.includes("/uploads/");
-    if (local) {
+    const isBlob = img.imageUrl && img.imageUrl.includes(".blob.core.windows.net");
+    const isLocal = img.imageUrl && img.imageUrl.includes("/uploads/");
+    if (isBlob) {
+      const filename = img.imageUrl.split("/").pop();
+      try { await deleteFromBlob(filename); } catch { /* ignore */ }
+    } else if (isLocal) {
       const name = img.imageUrl.split("/uploads/").pop();
-      try {
-        fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(name)));
-      } catch {
-        /* ignore */
-      }
+      try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(name))); } catch { /* ignore */ }
     }
     await img.destroy();
     return res.json({ message: "Image deleted" });
