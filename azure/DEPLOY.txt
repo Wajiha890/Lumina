@@ -1,0 +1,55 @@
+Lumina — Azure deployment (overview)
+========================================
+
+Architecture
+------------
+- Backend: Node.js (Express) API in folder /backend — deploy as Azure App Service (Linux) using the Dockerfile (`node src/index.js`, set PORT).
+- Frontend: React (Vite) in /frontend — build with `npm run build`, deploy the `dist/` folder (Static Web Apps, Blob + CDN, or any static host).
+- Database: Azure Database for PostgreSQL Flexible Server (recommended), not SQLite.
+
+1) PostgreSQL on Azure
+-----------------------
+- Create "Azure Database for PostgreSQL flexible server".
+- Create database (e.g. pixshare) and a user with password.
+- In Networking: allow Azure services; for App Service use private access or firewall rule for App Service outbound IPs.
+- Connection string form:
+  postgresql://USER:PASSWORD@HOST.postgres.database.azure.com:5432/pixshare?sslmode=require
+- App Service application setting: DATABASE_URL = (that URL). The app adds ssl if host contains database.azure.com when POSTGRES_SSLMODE is unset.
+
+2) Backend — App Service (container)
+------------------------------------
+- Create Container Registry (ACR), build and push image from /backend:
+  docker build -t YOUR_ACR.azurecr.io/pixshare-backend:latest ./backend
+  docker push YOUR_ACR.azurecr.io/pixshare-backend:latest
+- Create App Service (Linux, container), pull from ACR.
+- Application settings (minimum):
+  - DATABASE_URL
+  - SECRET_KEY (long random string)
+  - CORS_ORIGINS = https://YOUR-FRONTEND-DOMAIN (comma-separated if multiple; use * only for testing)
+  - Optional: POSTGRES_SSLMODE=require (default is require for Azure Postgres hostnames)
+- Port: set Application Setting `PORT=8080` (or match your container) so Node listens on the same port Azure expects.
+
+3) Frontend — Static Web Apps (recommended)
+---------------------------------------------
+- Build: `cd frontend && npm ci && npm run build` — deploy the `dist/` output.
+- Set build-time env `VITE_API_BASE=https://YOUR-BACKEND-NAME.azurewebsites.net` (no trailing slash) so the SPA calls your API.
+- In Static Web Apps, app location `frontend`, output `dist`, build command `npm run build` (with env vars configured in Azure).
+
+4) CORS
+-------
+- Set CORS_ORIGINS on the backend to your Static Web App URL(s), e.g.
+  https://YOUR-APP.azurestaticapps.net
+- After custom domain, add https://yourdomain.com
+
+5) First run / database tables
+------------------------------
+- On startup Sequelize `sync()` creates tables and seeds a default creator if none exists (`backend/src/db.js`).
+- Change default creator password after first login in production.
+
+6) Local Docker
+---------------
+- Backend maps container port 5000 → host 5010 by default (`BACKEND_HOST_PORT`). Frontend runs Vite on 5173 → host 5510 (`FRONTEND_HOST_PORT`). See README.
+
+7) GitHub Actions (optional)
+----------------------------
+- See .github/workflows/azure-backend-docker.yml — fill secrets and ACR/App Service names to automate build and deploy.
