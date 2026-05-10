@@ -1,3 +1,4 @@
+// Lumina – MSc Cloud Computing Project
 const bases = [];
 
 function pushBase(u) {

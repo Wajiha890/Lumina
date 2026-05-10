@@ -1,3 +1,4 @@
+// Lumina – MSc Cloud Computing Project
 import { NavLink, Link } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 

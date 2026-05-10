@@ -1,3 +1,4 @@
+// Lumina – MSc Cloud Computing Project
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 

@@ -1,3 +1,4 @@
+// Lumina – MSc Cloud Computing Project
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";

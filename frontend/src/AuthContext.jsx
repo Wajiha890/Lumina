@@ -1,3 +1,4 @@
+// Lumina – MSc Cloud Computing Project
 import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
 
 const Ctx = createContext(null);

@@ -1,3 +1,4 @@
+// Lumina – MSc Cloud Computing Project
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./AuthContext.jsx";
 import Home from "./pages/Home.jsx";

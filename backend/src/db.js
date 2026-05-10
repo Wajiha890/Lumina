@@ -1,3 +1,4 @@
+// Lumina – MSc Cloud Computing Project
 import { Sequelize, DataTypes } from "sequelize";
 import bcrypt from "bcryptjs";
 

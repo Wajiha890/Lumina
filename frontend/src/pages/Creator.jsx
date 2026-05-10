@@ -1,3 +1,4 @@
+// Creator page – Lumina Media Sharing Platform
 import { useEffect, useState } from "react";
 import { Navigate, NavLink } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";

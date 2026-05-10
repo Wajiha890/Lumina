@@ -1,3 +1,4 @@
+// Lumina – MSc Cloud Computing Project
 import { createSequelize, defineModels, syncAndSeed } from "./db.js";
 import { createApp } from "./app.js";
 
