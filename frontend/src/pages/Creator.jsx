@@ -1,5 +1,5 @@
 // Creator page – Lumina Media Sharing Platform
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, NavLink } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
 import { apiFetch } from "../api.js";
@@ -19,6 +19,12 @@ export default function Creator() {
   const [mediaUrl, setMediaUrl] = useState("");
   const [file, setFile] = useState(null);
   const [panel, setPanel] = useState("pipeline");
+  const panelRef = useRef(null);
+
+  function switchPanel(name) {
+    setPanel(name);
+    setTimeout(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }
 
   useEffect(() => {
     if (role === "creator") load();
@@ -114,10 +120,10 @@ export default function Creator() {
             </p>
           </div>
           <div className="admin-hero-actions">
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => setPanel("pipeline")}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => switchPanel("pipeline")}>
               New upload
             </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPanel("archive")}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => switchPanel("archive")}>
               My library
             </button>
             <NavLink to="/admin/users" className="btn btn-ghost btn-sm">
@@ -167,12 +173,12 @@ export default function Creator() {
             </NavLink>
           </aside>
 
-          <div className="admin-maincol">
+          <div className="admin-maincol" ref={panelRef}>
             <div className="admin-tabs" role="tablist" aria-label="Admin sections">
-              <button type="button" role="tab" aria-selected={panel === "pipeline"} className={"admin-tab" + (panel === "pipeline" ? " is-on" : "")} onClick={() => setPanel("pipeline")}>
+              <button type="button" role="tab" aria-selected={panel === "pipeline"} className={"admin-tab" + (panel === "pipeline" ? " is-on" : "")} onClick={() => switchPanel("pipeline")}>
                 Upload
               </button>
-              <button type="button" role="tab" aria-selected={panel === "archive"} className={"admin-tab" + (panel === "archive" ? " is-on" : "")} onClick={() => setPanel("archive")}>
+              <button type="button" role="tab" aria-selected={panel === "archive"} className={"admin-tab" + (panel === "archive" ? " is-on" : "")} onClick={() => switchPanel("archive")}>
                 Library
               </button>
             </div>
@@ -247,7 +253,7 @@ export default function Creator() {
                     </div>
                     <p className="admin-empty-title">No uploads yet</p>
                     <p className="admin-empty-text">That is why the numbers above are zero. Add your first image or video to fill the library.</p>
-                    <button type="button" className="btn btn-primary" onClick={() => setPanel("pipeline")}>
+                    <button type="button" className="btn btn-primary" onClick={() => switchPanel("pipeline")}>
                       Go to upload
                     </button>
                   </div>
