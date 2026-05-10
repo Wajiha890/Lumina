@@ -20,11 +20,9 @@ export default function Creator() {
   const [file, setFile] = useState(null);
   const [panel, setPanel] = useState("pipeline");
 
-  if (role !== "creator") return <Navigate to="/gallery" replace />;
-
   useEffect(() => {
-    load();
-  }, []);
+    if (role === "creator") load();
+  }, [role]);
 
   async function load() {
     const { ok, data } = await apiFetch("/images");
@@ -96,6 +94,8 @@ export default function Creator() {
     setFile(f);
     setUploadMethod("local");
   }
+
+  if (role !== "creator") return <Navigate to="/gallery" replace />;
 
   const mineCount = items.length;
   const commentsCount = items.reduce((s, i) => s + (i.comment_count || 0), 0);
