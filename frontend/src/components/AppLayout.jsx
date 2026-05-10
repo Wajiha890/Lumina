@@ -42,6 +42,13 @@ export default function AppLayout({ variant, title, subtitle, children }) {
         </div>
       </header>
 
+      {!admin && (
+        <div className="location-bar">
+          <span className="location-bar-icon">📍</span>
+          <span>You are in the <strong>Library</strong></span>
+        </div>
+      )}
+
       <main className="layout-main">
         {(title || subtitle) && (
           <header className="page-intro">

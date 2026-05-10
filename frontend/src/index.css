@@ -282,6 +282,19 @@ select.input:focus {
   border-color: rgba(224, 77, 122, 0.28);
 }
 
+.location-bar {
+  width: 100%;
+  background: linear-gradient(90deg, #ede9fe 0%, #fdf4ff 100%);
+  border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+  padding: 0.45rem 1.5rem;
+  font-size: 0.85rem;
+  color: #5b21b6;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.location-bar-icon { font-size: 0.95rem; }
+
 .layout-main {
   flex: 1;
   width: 100%;
